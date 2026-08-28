@@ -1,0 +1,81 @@
+{
+  "selected_model": "Random Forest",
+  "training_periods": [
+    "2026-01 \u2192 2026-02",
+    "2026-02 \u2192 2026-03"
+  ],
+  "future_test_period": "2026-03 \u2192 2026-04",
+  "feature_count": 26,
+  "features_excluded_for_leakage": [
+    "gsc_impressions",
+    "gsc_clicks",
+    "ctr"
+  ],
+  "results": [
+    {
+      "model": "Week-4 Baseline",
+      "base_rate": 0.23737771919091258,
+      "precision_at_20": 0.4,
+      "precision_at_50": 0.4,
+      "precision_at_100": 0.4,
+      "average_precision": 0.38068928613886566
+    },
+    {
+      "model": "Random Forest",
+      "base_rate": 0.23737771919091258,
+      "precision_at_20": 0.7,
+      "precision_at_50": 0.7,
+      "precision_at_100": 0.74,
+      "average_precision": 0.482947314082871
+    }
+  ],
+  "lift_table": [
+    {
+      "k": 20,
+      "base_rate": 0.23737771919091258,
+      "baseline_precision": 0.4,
+      "model_precision": 0.7,
+      "model_lift_vs_base_rate": 2.9488867042193645
+    },
+    {
+      "k": 50,
+      "base_rate": 0.23737771919091258,
+      "baseline_precision": 0.4,
+      "model_precision": 0.7,
+      "model_lift_vs_base_rate": 2.9488867042193645
+    },
+    {
+      "k": 100,
+      "base_rate": 0.23737771919091258,
+      "baseline_precision": 0.4,
+      "model_precision": 0.74,
+      "model_lift_vs_base_rate": 3.1173945158890426
+    }
+  ],
+  "quartile_summary": [
+    {
+      "score_quartile": "Lowest score",
+      "pages": 39927,
+      "positive_rate": 0.05940842036717008,
+      "median_score": 0.08204187646729617
+    },
+    {
+      "score_quartile": "Q2",
+      "pages": 39640,
+      "positive_rate": 0.1296670030272452,
+      "median_score": 0.11984729208833327
+    },
+    {
+      "score_quartile": "Q3",
+      "pages": 39345,
+      "positive_rate": 0.2236116406150718,
+      "median_score": 0.2166034932824825
+    },
+    {
+      "score_quartile": "Highest score",
+      "pages": 39637,
+      "positive_rate": 0.5380326462648536,
+      "median_score": 0.496513788970892
+    }
+  ]
+}

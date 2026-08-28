@@ -1,0 +1,42 @@
+{
+  "title": "Content Refresh Opportunity Scoring",
+  "research_question": "Can March-only, non-label-derived search and engagement signals rank content that subsequently meets a predefined refresh-review condition in April?",
+  "decision_supported": "Which pages should a human content or SEO reviewer inspect first?",
+  "data_source": "hf://datasets/FlyRank/internship-warehouse (fact_content_daily_performance)",
+  "date_windows": {
+    "training_periods": [
+      "2026-01 -> 2026-02",
+      "2026-02 -> 2026-03"
+    ],
+    "future_test_period": "2026-03 -> 2026-04"
+  },
+  "selected_model": "Random Forest",
+  "feature_count": 26,
+  "features_excluded_for_leakage": [
+    "client_hash_id",
+    "content_hash_id",
+    "ctr",
+    "ctr_change_pct",
+    "ctr_next",
+    "gsc_clicks",
+    "gsc_impressions",
+    "refresh_outcome"
+  ],
+  "future_test_results": {
+    "base_rate": 0.23737771919091258,
+    "baseline_average_precision": 0.38068928613886566,
+    "model_average_precision": 0.482947314082871,
+    "model_precision_at_20": 0.7,
+    "model_precision_at_50": 0.7,
+    "model_precision_at_100": 0.74
+  },
+  "limitations": [
+    "Observational data; no causal refresh claim.",
+    "Custom operational outcome definition, not a universal decay definition.",
+    "Population limited to content with matching feature/outcome-month observations.",
+    "Single future-month evaluation window.",
+    "Client heterogeneity may limit transfer to other portfolios.",
+    "No claim about Google's ranking algorithm."
+  ],
+  "interpretation": "The experiment measures whether a leakage-aware, time-aware ranking can provide directional decision-support for prioritizing human content review in the evaluated dataset."
+}

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leakage-Aware Content Refresh Opportunity Scoring — FlyRank Capstone</title>
+<meta name="description" content="Can March-only search and engagement signals rank content that later meets a refresh-review condition in April? A time-aware Random Forest ranking, evaluated on a held-out future window.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#FAF9F4;
+    --paper-panel:#F1EEE4;
+    --ink:#1B1B18;
+    --ink-soft:#5B584E;
+    --rule:#DAD6C8;
+    --accent:#2B5D50;
+    --accent-soft:#E4EEE9;
+    --warn:#8A5A2B;
+    --warn-soft:#F4EBDE;
+    --max:760px;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    font-size:18px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent); text-decoration-thickness:1px; text-underline-offset:2px;}
+  a:focus-visible, button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px;}
+
+  header.hero{
+    padding:64px 0 40px;
+    border-bottom:1px solid var(--rule);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 18px;
+  }
+  h1{
+    font-size:clamp(30px, 5vw, 42px);
+    line-height:1.15;
+    font-weight:700;
+    margin:0 0 10px;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    font-size:19px;
+    color:var(--ink-soft);
+    margin:0 0 28px;
+    font-style:italic;
+  }
+
+  /* Signature element: the scorecard readout */
+  .scorecard{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .scorecard .cell{
+    background:var(--paper);
+    padding:16px 14px;
+    text-align:center;
+  }
+  .scorecard .cell .label{
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .scorecard .cell .rf{
+    font-size:24px;
+    font-weight:600;
+    color:var(--accent);
+    font-variant-numeric:tabular-nums;
+  }
+  .scorecard .cell .base{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:4px;
+    font-variant-numeric:tabular-nums;
+  }
+  .scorecard-caption{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:10px;
+  }
+
+  main{padding:40px 0 20px;}
+
+  section{margin:0 0 52px;}
+  section > .sec-number{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:.04em;
+  }
+  h2{
+    font-size:26px;
+    font-weight:700;
+    margin:4px 0 20px;
+    letter-spacing:-0.005em;
+  }
+  h3{
+    font-size:19px;
+    font-weight:600;
+    margin:28px 0 10px;
+  }
+  p{margin:0 0 16px;}
+  .lede{font-size:19px; color:var(--ink);}
+
+  blockquote{
+    margin:24px 0;
+    padding:2px 0 2px 20px;
+    border-left:3px solid var(--accent);
+    font-style:italic;
+    color:var(--ink);
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14.5px;
+  }
+  caption{
+    text-align:left;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+    caption-side:top;
+  }
+  th, td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--rule);
+  }
+  th{
+    background:var(--paper-panel);
+    font-weight:600;
+    font-size:12.5px;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  td.num, th.num{text-align:right; font-variant-numeric:tabular-nums;}
+  tr.highlight td{color:var(--accent); font-weight:600;}
+
+  .callout{
+    background:var(--paper-panel);
+    border:1px solid var(--rule);
+    border-radius:2px;
+    padding:18px 20px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:15.5px;
+    color:var(--ink-soft);
+  }
+  .callout.warn{background:var(--warn-soft); border-color:#E4D2B8; color:#5E3E1B;}
+  .callout strong{color:var(--ink);}
+
+  ul, ol{padding-left:22px; margin:0 0 16px;}
+  li{margin-bottom:6px;}
+
+  figure{margin:28px 0;}
+  figure img{
+    width:100%;
+    height:auto;
+    border:1px solid var(--rule);
+    display:block;
+  }
+  figcaption{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    line-height:1.5;
+  }
+
+  code{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.88em;
+    background:var(--paper-panel);
+    padding:1px 5px;
+    border-radius:2px;
+  }
+
+  .divider{border:none; border-top:1px solid var(--rule); margin:52px 0;}
+
+  footer{
+    padding:32px 0 60px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--rule);
+  }
+  footer a{color:var(--accent);}
+
+  .not-list{list-style:none; padding-left:0;}
+  .not-list li{
+    padding-left:22px;
+    position:relative;
+  }
+  .not-list li::before{
+    content:"×";
+    position:absolute;
+    left:0;
+    color:var(--warn);
+    font-weight:700;
+  }
+
+  @media (max-width:600px){
+    body{font-size:16.5px;}
+    .scorecard{grid-template-columns:repeat(2, 1fr);}
+    header.hero{padding:44px 0 32px;}
+    h1{font-size:26px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">FlyRank ML Internship · Capstone · Machine Learning Track</p>
+    <h1>Leakage-Aware Content Refresh Opportunity Scoring</h1>
+    <p class="subtitle">A time-aware ranking approach for prioritizing human content review</p>
+
+    <div class="scorecard">
+      <div class="cell">
+        <div class="label">P@20</div>
+        <div class="rf">0.65</div>
+        <div class="base">baseline 0.40</div>
+      </div>
+      <div class="cell">
+        <div class="label">P@50</div>
+        <div class="rf">0.70</div>
+        <div class="base">baseline 0.52</div>
+      </div>
+      <div class="cell">
+        <div class="label">P@100</div>
+        <div class="rf">0.76</div>
+        <div class="base">baseline 0.54</div>
+      </div>
+      <div class="cell">
+        <div class="label">Avg. Precision</div>
+        <div class="rf">0.484</div>
+        <div class="base">baseline 0.381</div>
+      </div>
+    </div>
+    <p class="scorecard-caption">Random Forest vs. Week-4 baseline, evaluated on the same held-out March → April future test set (base rate 23.74%).</p>
+  </header>
+
+  <main>
+
+    <section id="abstract">
+      <p class="sec-number">Abstract</p>
+      <p class="lede">This study asks whether March-only, non-label-derived search and engagement signals can rank content that subsequently meets a predefined refresh-review condition in April. Using the FlyRank internship warehouse, the analysis constructs January→February and February→March development observations and evaluates the selected model on the held-out March→April future window. A 26-feature Random Forest was selected using client-grouped internal validation and then evaluated against the fixed Week-4 baseline on the same future test set. On the March→April test set, the Random Forest achieved Precision@20 of 0.65, Precision@50 of 0.70, Precision@100 of 0.76, and Average Precision of 0.4838, compared with 0.40, 0.52, 0.54, and 0.380689 for the baseline. The result is directional, observational decision-support evidence for prioritizing human content review, not evidence that refreshing content causes improvement and not a prediction of Google's ranking algorithm.</p>
+    </section>
+
+    <section id="intro">
+      <p class="sec-number">1</p>
+      <h2>Introduction / Problem</h2>
+      <p>Content teams may have more pages available for investigation than they can review at the same time. This creates a prioritization problem: <strong>which pages should a human content or SEO reviewer inspect first?</strong></p>
+      <p>This capstone investigates the following research question:</p>
+      <blockquote>Can March-only, non-label-derived search and engagement signals rank content that subsequently meets a predefined refresh-review condition in April?</blockquote>
+      <p>The intended output is a <strong>ranking and triage system</strong>, rather than an automated publishing or content-management system. The study evaluates whether historical signals can provide useful prioritization evidence while explicitly avoiding claims about Google's ranking algorithm or causal effects of refreshing content.</p>
+      <p>The primary hypothesis was that pages with weaker search visibility or weaker engagement-related signals may be more likely to meet the defined future refresh-review outcome — treated as an empirical hypothesis, not an assumption that any individual signal causes the outcome.</p>
+    </section>
+
+    <section id="data">
+      <p class="sec-number">2</p>
+      <h2>Data</h2>
+
+      <h3>2.1 Dataset</h3>
+      <p>The analysis uses the FlyRank internship warehouse: <code>hf://datasets/FlyRank/internship-warehouse</code>, table <code>fact_content_daily_performance</code>. The underlying daily grain is approximately <code>report_date × client × content</code>.</p>
+      <p>Warehouse verification: <strong>78,835,655 rows</strong>, minimum date <strong>2025-01-27</strong>, maximum date <strong>2026-06-30</strong>. A grain check detected no duplicate observations at the expected daily grain.</p>
+
+      <h3>2.2 Temporal design</h3>
+      <p>The study uses month-to-month observations so that the information used to rank content precedes the outcome being evaluated.</p>
+      <table>
+        <thead><tr><th>Feature month</th><th>Outcome month</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>January 2026</td><td>February 2026</td><td>Model development</td></tr>
+          <tr><td>February 2026</td><td>March 2026</td><td>Model development</td></tr>
+          <tr><td>March 2026</td><td>April 2026</td><td>Future test</td></tr>
+        </tbody>
+      </table>
+      <p>Panel sizes: January→February <strong>110,867</strong> observations; February→March <strong>134,238</strong>; March→April <strong>158,549</strong>.</p>
+      <p>The March→April evaluation population: negative outcome <strong>120,913</strong>; positive outcome <strong>37,636</strong>; positive-class base rate <strong>23.74%</strong>.</p>
+
+      <h3>2.3 Population</h3>
+      <p>The modeling population consists of content with usable search data and a matching observation in the following month. Pages without a matching future observation are not represented in the evaluation, so results describe the observed month-to-month panel rather than every page in a production content inventory.</p>
+
+      <h3>2.4 Exclusions</h3>
+      <p>The final model excludes future-window variables, direct components of the target definition, client identifiers, content identifiers, and data unavailable before the prediction month. Client and content identifiers were used only for joins and grouping, never as predictive features.</p>
+      <div class="callout"><strong>Public-safety note:</strong> no client names, domains, URLs, private queries, credentials, or raw client-level exports are included in this analysis.</div>
+    </section>
+
+    <section id="methodology">
+      <p class="sec-number">3</p>
+      <h2>Methodology</h2>
+
+      <h3>3.1 Operational outcome</h3>
+      <p>The study uses an operational research label, <code>refresh_outcome</code>. A page receives <code>refresh_outcome = 1</code> when: (1) it has at least 100 impressions in the feature month; (2) it has measurable CTR in the feature month; and (3) its following month's CTR is at least 20% lower than the feature-month CTR. For the final evaluation, March provides the feature information and April provides the future outcome. This is deliberately a <em>research outcome</em>, not a universal definition of content decay.</p>
+
+      <h3>3.2 Feature engineering</h3>
+      <p>The final model contains <strong>26 features</strong>, including search-position information, GA4 pageviews/sessions/users, engaged sessions, total engagement time, traffic-channel sessions, AI-referral signals, scroll activity, GA4 availability, organic-session share, engagement rate, average engagement time per session, AI-session share, and scroll events per session.</p>
+      <p>The following fields were explicitly excluded from the final feature set: <code>gsc_impressions</code>, <code>gsc_clicks</code>, <code>ctr</code>, <code>ctr_next</code>, <code>refresh_outcome</code>, <code>ctr_change_pct</code>, <code>client_hash_id</code>, <code>content_hash_id</code>.</p>
+
+      <h3>3.3 Final leakage audit</h3>
+      <p>Before fitting the final model, the feature set was checked against the operational outcome definition and the temporal setup. <code>ctr_next</code>, <code>ctr_change_pct</code>, and <code>refresh_outcome</code> were excluded because they encode future/outcome information directly. Current-month fields used to construct the outcome (<code>gsc_impressions</code>, <code>gsc_clicks</code>, <code>ctr</code>) were also excluded from the final predictive feature set. The final model therefore uses only features available from the feature month and does not use the following month's outcome when generating a ranking.</p>
+
+      <h3>3.4 Model candidates</h3>
+      <p>Two models were considered: Logistic Regression (median imputation, standardization, logistic regression) and Random Forest (median imputation, 300 trees, max depth 6, minimum 10 samples per leaf, random state 42, parallel processing).</p>
+
+      <h3>3.5 Model selection</h3>
+      <p>Model selection was performed <em>before</em> evaluating the future test period, using a client-grouped internal validation split: development 200,965 rows / 36 clients; validation 44,140 rows / 10 clients; no client overlap.</p>
+      <table>
+        <thead><tr><th>Model</th><th class="num">Internal validation AP</th></tr></thead>
+        <tbody>
+          <tr><td>Logistic Regression</td><td class="num">0.353227</td></tr>
+          <tr class="highlight"><td>Random Forest</td><td class="num">0.367495</td></tr>
+        </tbody>
+      </table>
+      <p>The Random Forest was selected on Average Precision. The March→April future test set was not used for model selection.</p>
+
+      <h3>3.6 Final time-aware validation</h3>
+      <p>Training used January→February and February→March; the future test used March→April. The April outcome was not used for model fitting or feature selection.</p>
+
+      <h3>3.7 Evaluation metrics</h3>
+      <p>The study evaluates ranking quality — Precision@20, Precision@50, Precision@100, and Average Precision — reported alongside the positive-class base rate. Precision@K answers: among the top K pages selected for review, what proportion meet the predefined future outcome?</p>
+    </section>
+
+    <section id="results">
+      <p class="sec-number">4</p>
+      <h2>Results</h2>
+      <p>The final model and baseline were evaluated on the <strong>same March → April future test set</strong>.</p>
+      <table>
+        <thead><tr><th>Model</th><th class="num">P@20</th><th class="num">P@50</th><th class="num">P@100</th><th class="num">Avg. Precision</th><th class="num">Base rate</th></tr></thead>
+        <tbody>
+          <tr><td>Week-4 Baseline</td><td class="num">0.40</td><td class="num">0.52</td><td class="num">0.54</td><td class="num">0.380689</td><td class="num">0.2374</td></tr>
+          <tr class="highlight"><td>Random Forest</td><td class="num">0.65</td><td class="num">0.70</td><td class="num">0.76</td><td class="num">0.4838</td><td class="num">0.2374</td></tr>
+        </tbody>
+      </table>
+      <p>Relative to the 23.74% positive-class base rate: P@20 ≈ <strong>2.74×</strong>, P@50 ≈ <strong>2.95×</strong>, P@100 ≈ <strong>3.20×</strong>. These figures describe ranking concentration — they should not be read as evidence that the model causes pages to improve.</p>
+
+      <h3>4.1 Score-group analysis</h3>
+      <p>The test population was divided into four model-score groups:</p>
+      <table>
+        <thead><tr><th>Score group</th><th class="num">Pages</th><th class="num">Observed positive rate</th></tr></thead>
+        <tbody>
+          <tr><td>Lowest score</td><td class="num">40,391</td><td class="num">6.04%</td></tr>
+          <tr><td>Q2</td><td class="num">38,894</td><td class="num">12.76%</td></tr>
+          <tr><td>Q3</td><td class="num">39,653</td><td class="num">22.57%</td></tr>
+          <tr class="highlight"><td>Highest score</td><td class="num">39,611</td><td class="num">53.74%</td></tr>
+        </tbody>
+      </table>
+      <p>The observed positive rate increased from 6.04% in the lowest-score group to 53.74% in the highest — evidence that the ranking concentrates the defined outcome toward higher model scores in the evaluated test population.</p>
+
+      <figure>
+        <img src="figures/capstone_score_quartiles.png" alt="Bar chart showing the observed refresh-outcome rate rising from about 6% in the lowest model-score group to about 54% in the highest model-score group.">
+        <figcaption><strong>Figure 1.</strong> Observed outcome rate across model-score groups. The figure shows the observed rate of the predefined refresh-review outcome across four groups of model scores in the March → April future test population.</figcaption>
+      </figure>
+    </section>
+
+    <section id="limitations">
+      <p class="sec-number">5</p>
+      <h2>Limitations &amp; Honest Framing</h2>
+
+      <h3>Observational data</h3>
+      <p>The analysis observes naturally occurring search and analytics behavior. It does not randomly assign content changes and cannot establish that refreshing a page causes better search performance.</p>
+
+      <h3>Custom outcome definition</h3>
+      <p>The <code>refresh_outcome</code> label — minimum feature-month impressions, measurable feature-month CTR, at least a 20% subsequent CTR decline — is an operational research label, not a universal definition of content decay.</p>
+
+      <h3>Population selection</h3>
+      <p>The evaluation requires a matching feature-month and outcome-month observation; pages without one are excluded.</p>
+
+      <h3>Limited future horizon</h3>
+      <p>The final evaluation uses one future month-to-month window. Additional future windows are required before making stronger claims about stability.</p>
+
+      <h3>Client heterogeneity</h3>
+      <p>Clients differ in content, history, analytics coverage, and search behavior. A model that performs well in this dataset may not transfer directly to another portfolio.</p>
+
+      <h3>Feature availability</h3>
+      <p>GA4 availability differs across clients and time, so missingness and measurement availability can affect observed signals.</p>
+
+      <h3>No causal refresh experiment</h3>
+      <p>The study does not compare randomized refreshed and non-refreshed pages and cannot estimate the causal effect of refreshing content.</p>
+
+      <h3>No Google algorithm claim</h3>
+      <p>The model ranks outcomes in the evaluated FlyRank dataset. It does <strong>not</strong> predict or reverse-engineer Google's ranking algorithm.</p>
+    </section>
+
+    <section id="recommendations">
+      <p class="sec-number">6</p>
+      <h2>Ranked Recommendations</h2>
+      <p>The model output is converted into a human-review queue:</p>
+      <blockquote>These pages appear worth reviewing first because they received higher model scores under the tested methodology.</blockquote>
+
+      <h3>Action tiers</h3>
+      <table>
+        <thead><tr><th>Priority</th><th>Rule</th><th>Recommended treatment</th></tr></thead>
+        <tbody>
+          <tr><td>Priority human review</td><td>Top 10% by model score</td><td>Review first</td></tr>
+          <tr><td>Review if capacity allows</td><td>Top 25%, excluding top 10%</td><td>Batch review</td></tr>
+          <tr><td>Monitor</td><td>Remaining pages</td><td>Revisit later</td></tr>
+        </tbody>
+      </table>
+      <p>Score thresholds are relative triage thresholds, not causal rules.</p>
+
+      <h3>Reason codes</h3>
+      <table>
+        <thead><tr><th>Reason code</th><th>Interpretation</th></tr></thead>
+        <tbody>
+          <tr><td><code>TOP_MODEL_PRIORITY</code></td><td>Very high model score</td></tr>
+          <tr><td><code>HIGH_MODEL_PRIORITY</code></td><td>High model score below the top tier</td></tr>
+          <tr><td><code>WEAKER_SEARCH_VISIBILITY</code></td><td>Search position at or beyond the training-period 75th percentile</td></tr>
+          <tr><td><code>LOW_ORGANIC_ACTIVITY</code></td><td>Organic sessions at or below the training-period 25th percentile</td></tr>
+          <tr><td><code>LOW_ENGAGEMENT_SIGNAL</code></td><td>Engagement rate at or below the training-period 25th percentile</td></tr>
+          <tr><td><code>LIMITED_GA4_COVERAGE</code></td><td>GA4 data unavailable</td></tr>
+          <tr><td><code>MODEL_RANK_ONLY</code></td><td>No additional reason-code condition met</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Human review protocol</h3>
+      <p>Before acting on a high-ranked recommendation, a human reviewer should check:</p>
+      <ol>
+        <li>Does the page's search intent still match the intended topic?</li>
+        <li>Is the content factually current?</li>
+        <li>Is the page still strategically important?</li>
+        <li>Are there competing pages covering the same intent?</li>
+        <li>Are technical/indexing issues explaining weak visibility?</li>
+        <li>Is there a seasonal or temporary demand pattern?</li>
+        <li>Is the observed signal supported by enough data?</li>
+        <li>Could editing the page create a new risk or remove useful information?</li>
+      </ol>
+      <p>Workflow: <strong>model ranking → human review → contextual decision → optional action → monitor outcome.</strong></p>
+
+      <h3>What should NOT be automated</h3>
+      <div class="callout warn">
+        <ul class="not-list">
+          <li>Delete content</li>
+          <li>Merge URLs</li>
+          <li>Publish rewritten content</li>
+          <li>Change canonical URLs</li>
+          <li>Create redirects</li>
+          <li>Modify robots directives</li>
+          <li>Make legal/compliance decisions</li>
+          <li>Make sensitive health or financial-content decisions</li>
+          <li>Overwrite brand-critical content</li>
+          <li>Declare that a page will recover after a refresh</li>
+          <li>Claim that a content change will improve Google rankings</li>
+        </ul>
+      </div>
+      <p>Human judgment remains responsible for the actual editorial action.</p>
+
+      <h3>Cost/value framing</h3>
+      <p>The study contains no production cost, revenue, or editorial labor estimates, so no fabricated monetary value is assigned. The ranking instead allocates limited human attention: higher-priority pages reviewed first, moderate-priority pages reviewed if capacity allows, lower-priority pages monitored and revisited later.</p>
+
+      <h3>Monitoring and retraining</h3>
+      <p>The ranking should be re-evaluated whenever a new labeled month becomes available — for example if Average Precision falls materially below the reference evaluation, Precision@K stops providing useful concentration relative to the base rate, the model no longer outperforms the fixed baseline, feature distributions shift substantially, or the outcome definition changes. Retraining should occur only after a new labeled window is available, and a candidate model should again pass the same leakage audit and validation procedure before adoption. These are proposed monitoring rules, not calibrated production thresholds.</p>
+    </section>
+
+    <section id="reproducibility">
+      <p class="sec-number">7</p>
+      <h2>Reproducibility</h2>
+      <p>The analysis is implemented in <code>work/notebooks/capstone.ipynb</code>, designed to run independently rather than relying on variables from previous notebooks.</p>
+      <p>The executed notebook produces:</p>
+      <ul>
+        <li><strong>Metrics:</strong> <code>work/metrics/capstone_metrics.json</code></li>
+        <li><strong>Ranked queue:</strong> <code>work/outputs/capstone_ranked_action_queue.csv</code> (158,549 rows; intentionally excluded from Git per the repository's data-file policy)</li>
+        <li><strong>Paper summary:</strong> <code>work/outputs/capstone_summary.json</code></li>
+        <li><strong>Figure:</strong> <code>work/figures/capstone_score_quartiles.png</code></li>
+      </ul>
+      <p>The notebook's final artifact checks verified that required generated artifacts existed and were non-empty, and its final self-check returned <strong>PASS</strong> for the major reproducibility and methodological checks.</p>
+      <p>Repository: <a href="https://github.com/Wajiha-Waqar/FlyRankInternship">Wajiha-Waqar/FlyRankInternship</a><br>
+      Notebook: <a href="https://github.com/Wajiha-Waqar/FlyRankInternship/blob/main/work/notebooks/capstone.ipynb">capstone.ipynb</a></p>
+    </section>
+
+    <section id="acknowledgments">
+      <p class="sec-number">8</p>
+      <h2>Acknowledgments &amp; Data Credit</h2>
+      <p>This work was completed as part of the FlyRank ML Internship and uses the FlyRank internship dataset.</p>
+      <p><strong>Built on the FlyRank ML Internship dataset.</strong> <a href="https://flyrank.ai">FlyRank</a></p>
+    </section>
+
+    <hr class="divider">
+
+    <section id="conclusion">
+      <h2>Final Conclusion</h2>
+      <p>This capstone developed a leakage-aware, time-aware content-refresh opportunity ranking using real FlyRank search and analytics data. The final feature set excludes variables that directly participate in the target definition, addressing the label-derived leakage identified during earlier validation work.</p>
+      <p>The selected Random Forest produced stronger observed ranking metrics than the fixed baseline on the same March → April future test set, including P@20 of 0.65, P@50 of 0.70, P@100 of 0.76, and AP of 0.4838.</p>
+      <p>The most defensible interpretation is <strong>decision support</strong>: the ranking helps a human reviewer decide where to look first. It does not demonstrate that refreshing content causes better performance, and it does not predict Google's ranking algorithm.</p>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Google Search Ranking &amp; Discoverability Capstone · Machine Learning Track · FlyRank ML Internship</p>
+  </footer>
+</div>
+
+</body>
+</html>

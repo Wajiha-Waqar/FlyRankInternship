@@ -25,10 +25,10 @@
   "future_test_results": {
     "base_rate": 0.23737771919091258,
     "baseline_average_precision": 0.38068928613886566,
-    "model_average_precision": 0.482947314082871,
-    "model_precision_at_20": 0.7,
+    "model_average_precision": 0.4837668699718576,
+    "model_precision_at_20": 0.65,
     "model_precision_at_50": 0.7,
-    "model_precision_at_100": 0.74
+    "model_precision_at_100": 0.76
   },
   "limitations": [
     "Observational data; no causal refresh claim.",

@@ -16,17 +16,17 @@
       "model": "Week-4 Baseline",
       "base_rate": 0.23737771919091258,
       "precision_at_20": 0.4,
-      "precision_at_50": 0.4,
-      "precision_at_100": 0.4,
+      "precision_at_50": 0.52,
+      "precision_at_100": 0.54,
       "average_precision": 0.38068928613886566
     },
     {
       "model": "Random Forest",
       "base_rate": 0.23737771919091258,
-      "precision_at_20": 0.7,
+      "precision_at_20": 0.65,
       "precision_at_50": 0.7,
-      "precision_at_100": 0.74,
-      "average_precision": 0.482947314082871
+      "precision_at_100": 0.76,
+      "average_precision": 0.4837668699718576
     }
   ],
   "lift_table": [
@@ -34,48 +34,48 @@
       "k": 20,
       "base_rate": 0.23737771919091258,
       "baseline_precision": 0.4,
-      "model_precision": 0.7,
-      "model_lift_vs_base_rate": 2.9488867042193645
+      "model_precision": 0.65,
+      "model_lift_vs_base_rate": 2.738251939632267
     },
     {
       "k": 50,
       "base_rate": 0.23737771919091258,
-      "baseline_precision": 0.4,
+      "baseline_precision": 0.52,
       "model_precision": 0.7,
       "model_lift_vs_base_rate": 2.9488867042193645
     },
     {
       "k": 100,
       "base_rate": 0.23737771919091258,
-      "baseline_precision": 0.4,
-      "model_precision": 0.74,
-      "model_lift_vs_base_rate": 3.1173945158890426
+      "baseline_precision": 0.54,
+      "model_precision": 0.76,
+      "model_lift_vs_base_rate": 3.2016484217238816
     }
   ],
   "quartile_summary": [
     {
       "score_quartile": "Lowest score",
-      "pages": 39927,
-      "positive_rate": 0.05940842036717008,
-      "median_score": 0.08204187646729617
+      "pages": 40391,
+      "positive_rate": 0.06043425515585155,
+      "median_score": 0.08423879542892065
     },
     {
       "score_quartile": "Q2",
-      "pages": 39640,
-      "positive_rate": 0.1296670030272452,
-      "median_score": 0.11984729208833327
+      "pages": 38894,
+      "positive_rate": 0.12755180747673164,
+      "median_score": 0.1191021598813528
     },
     {
       "score_quartile": "Q3",
-      "pages": 39345,
-      "positive_rate": 0.2236116406150718,
-      "median_score": 0.2166034932824825
+      "pages": 39653,
+      "positive_rate": 0.22565757950218143,
+      "median_score": 0.2168648755096972
     },
     {
       "score_quartile": "Highest score",
-      "pages": 39637,
-      "positive_rate": 0.5380326462648536,
-      "median_score": 0.496513788970892
+      "pages": 39611,
+      "positive_rate": 0.5373759814193028,
+      "median_score": 0.4993960176096753
     }
   ]
 }
